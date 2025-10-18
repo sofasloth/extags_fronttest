@@ -19,7 +19,7 @@
 	let alarmName = $state('');
 	let alarmDate = $state('');
 	let alarmTime = $state('09:10');
-	let alarmPeriod = $state<'morning' | 'afternoon'>('morning');
+	let alarmPeriod = $state<'morning' | 'afternoon' | 'evening' | 'night'>('morning');
 
 	// 리사이즈 관련
 	let isResizing = $state(false);
@@ -48,6 +48,9 @@
 	onMount(() => {
 		updateDateTime();
 		const interval = setInterval(updateDateTime, 60000);
+
+		// 기본 날짜 설정
+		alarmDate = getTodayDate();
 
 		// ESC 키 이벤트 리스너
 		const handleKeyDown = (e: KeyboardEvent) => {
@@ -131,8 +134,32 @@
 		const target = new Date(alarmDate);
 		target.setHours(0, 0, 0, 0);
 		const diff = Math.floor((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-		return diff >= 0 ? `D+${String(diff).padStart(2, '0')}` : `D${diff}`;
+		return diff >= 0 ? `D-${String(diff).padStart(2, '0')}` : `D+${String(diff).padStart(2, '0')}`;
 	}
+
+	// 오늘 날짜를 YYYY-MM-DD 형식으로 반환
+	function getTodayDate() {
+		const today = new Date();
+		const year = today.getFullYear();
+		const month = String(today.getMonth() + 1).padStart(2, '0');
+		const day = String(today.getDate()).padStart(2, '0');
+		return `${year}-${month}-${day}`;
+	}
+
+	// 날짜를 YYYY/MM/DD 형식으로 변환
+	function formatDateWithSlash(dateString: string) {
+		if (!dateString) return '';
+		return dateString.replace(/-/g, '/');
+	}
+
+	// 날짜에서 요일 반환
+	function getDayOfWeek(dateString: string) {
+		if (!dateString) return '';
+		const date = new Date(dateString);
+		const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+		return days[date.getDay()];
+	}
+
 
 	// // 리사이즈 핸들러
 	// function handleResizeStart(e: MouseEvent) {
@@ -325,24 +352,37 @@
 		{#if showAlarmPanel}
 			<div class="input-panel alarm-panel" in:slide={{duration: 200, delay: 200}} out:slide={{duration: 200}}>
 				<div class="alarm-form">
-					<div class="alarm-icon-header">⏰</div>
-					<input
-						type="text"
-						bind:value={alarmName}
-						placeholder="Alarm_name"
-						class="alarm-name-input"
-					/>
-					<div class="alarm-queue-display">Next Queue : {calculateDaysUntil()}</div>
-					<div class="alarm-date-display">
-						{getFormattedAlarmDate() || 'Select a date'}
+					<div class="alarm-form-row">
+						<div class="alarm-icon-header">⏰</div>
+						<input
+							type="text"
+							bind:value={alarmName}
+							placeholder="Alarm_name"
+							class="alarm-name-input"
+						/>
 					</div>
-					<input type="date" bind:value={alarmDate} class="alarm-date-input" />
-					<div class="alarm-time-display">
-						<input type="time" bind:value={alarmTime} class="alarm-time-input" />
+					<div class="alarm-form-row">
+						<div class="alarm-queue-display">Next Queue : {calculateDaysUntil()}</div>
+						<div class="flex-spacer"></div>
 						<select bind:value={alarmPeriod} class="alarm-period-select">
 							<option value="morning">morning</option>
 							<option value="afternoon">afternoon</option>
+							<option value="evening">evening</option>
+							<option value="night">night</option>
 						</select>
+					</div>
+					<div class="alarm-form-row">
+							<input 
+								type="date" 
+								bind:value={alarmDate}
+								class="alarm-date-input" 
+								placeholder="YYYY/MM/DD"
+							/>
+							<span class="alarm-date-separator">{getDayOfWeek(alarmDate)}</span>
+							<div class="flex-spacer"></div>
+							<div class="alarm-time-display">
+								<input type="time" bind:value={alarmTime} class="alarm-time-input" />
+							</div>
 					</div>
 				</div>
 			</div>
@@ -746,8 +786,8 @@
 	.tag-item {
 		display: flex;
 		align-items: center;
-		gap: 6px;
-		padding: 8px 12px;
+		gap: 0.3rem;
+		padding: 0.2rem 0.4rem;
 		background-color: #e0e0e0;
 		color: #000;
 		border: none;
@@ -762,6 +802,7 @@
 	}
 
 	.tag-icon {
+		width: 1.1rem;
 		font-size: 0.9rem;
 	}
 
@@ -770,9 +811,16 @@
 	}
 
 	.tag-remove {
+		width: 1.1rem;
 		font-size: 1.2rem;
 		font-weight: 600;
-		margin-left: 2px;
+		/* margin-left: 2px; */
+	}
+	
+	.tag-remove:hover {
+		color: var(--status-error-border);
+		transform: scale(1.1);
+		transition: all 0.2s ease;
 	}
 
 	.panel-footer {
@@ -790,12 +838,18 @@
 	.alarm-form {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: 0.1rem;
+	}
+
+	.alarm-form-row {
+		display: flex;
+		flex-direction: row;
+		gap: 8px;
+		align-items: end;
 	}
 
 	.alarm-icon-header {
-		font-size: 2rem;
-		margin-bottom: 8px;
+		font-size: 1.2rem;
 	}
 
 	.alarm-name-input {
@@ -805,7 +859,8 @@
 		outline: none;
 		color: var(--text-primary);
 		font-size: 1rem;
-		padding: 8px 0;
+		font-family: inherit;
+		padding: 0.2rem 0;
 	}
 
 	.alarm-name-input::placeholder {
@@ -814,23 +869,45 @@
 
 	.alarm-queue-display {
 		color: var(--text-muted);
-		font-size: 0.85rem;
+		font-size: 0.9rem;
 	}
 
-	.alarm-date-display {
-		color: var(--text-primary);
-		font-size: 1.2rem;
-		font-weight: 500;
+	.flex-spacer {
+		flex: 1;
+		height:auto;
 	}
+
 
 	.alarm-date-input,
-	.alarm-time-input,
+	.alarm-time-input {
+		background-color: transparent;
+		border: none;
+		outline: none;
+		color: var(--text-primary);
+		font-family: inherit;
+		font-size: 1.5rem;
+		font-weight: 600;
+		padding: 0.2rem 0;
+	}
+
+	.alarm-date-input {
+		flex-shrink: 0;
+		flex-grow: 0;
+	}
+
+	.alarm-date-separator {
+		font-size: 1.2rem;
+		font-weight: 500;
+		color: var(--text-muted);
+		margin-bottom: 0.2rem;
+	}
+
 	.alarm-period-select {
 		background-color: var(--bg-tertiary);
 		border: 1px solid var(--border-color);
 		border-radius: 4px;
 		color: var(--text-primary);
-		padding: 8px 12px;
+		padding: 0.2rem 0.4rem;
 		font-size: 0.9rem;
 		outline: none;
 	}
