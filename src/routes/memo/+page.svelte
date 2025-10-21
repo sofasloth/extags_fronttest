@@ -454,6 +454,7 @@
 	.memo-container:hover,
 	.memo-container:focus-within {
 		border: 2px solid var(--accent-border);
+		box-shadow: 0 4px 12px var(--shadow);
 		transition: border-color 0.3s ease;
 	}
 

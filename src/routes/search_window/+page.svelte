@@ -141,47 +141,54 @@
 				<div class="file-cell cell-index" style="width: {columnWidths.index}px;">
 					<span class="index-number">{file.id}</span>
 				</div>
-				<div class="file-cell cell-filename" style="width: {columnWidths.fileName}px;">
-					<span class="file-icon">{getFileIcon(file.fileName)}</span>
-					<span class="file-name" title={file.fileName}>{file.fileName}</span>
-				</div>
-				<div class="file-cell" style="width: {columnWidths.modified}px;">
-					<span class="cell-badge">{file.modified}</span>
-				</div>
-				<div class="file-cell cell-path" style="width: {columnWidths.path}px;">
-					<span class="path-text" title={file.path}>{file.path}</span>
-				</div>
-				<div class="file-cell" style="width: {columnWidths.size}px;">
-					<span class="size-badge">{file.size}</span>
-				</div>
-				<div class="file-cell cell-tags" style="width: {columnWidths.tag}px;">
-					{#each file.tags as tag}
-						<span class="item-tag">
-							<span class="tag-icon">🎨</span>
-							<span class="tag-name">{tag}</span>
-							<button class="tag-remove">✕</button>
-						</span>
-					{/each}
-				</div>
+        <div class="file-cell-container">
+          <div class="file-cell cell-filename" style="width: {columnWidths.fileName}px;">
+            <span class="file-icon">{getFileIcon(file.fileName)}</span>
+            <span class="file-name" title={file.fileName}>{file.fileName}</span>
+          </div>
+          <div class="file-cell" style="width: {columnWidths.modified}px;">
+            <span class="cell-badge">{file.modified}</span>
+          </div>
+          <div class="file-cell cell-path" style="width: {columnWidths.path}px;">
+            <span class="path-text" title={file.path}>{file.path}</span>
+          </div>
+          <div class="file-cell" style="width: {columnWidths.size}px;">
+            <span class="size-badge">{file.size}</span>
+          </div>
+          <div class="file-cell cell-tags" style="width: {columnWidths.tag}px;">
+            {#each file.tags as tag}
+              <span class="item-tag">
+                <span class="tag-icon">🎨</span>
+                <span class="tag-name">{tag}</span>
+                <button class="tag-remove">✕</button>
+              </span>
+            {/each}
+          </div>
+        </div>
 			</div>
 		{/each}
 	</div>
-
+  <div class="list-gradient-overlay"></div>
 	<!-- 스크롤바 인디케이터 (커스텀 스타일링을 위해) -->
 	<div class="scrollbar-indicator"></div>
 </div>
 
 <style>
 	.file-explorer {
-		width: 100%;
-		height: 100vh;
+		width: fit-content;
+		/* height: 100%; */
+    max-height: 90vh;
+    overflow-y: auto;
 		display: flex;
 		flex-direction: column;
-		background: var(--bg-primary);
-		color: var(--text-primary);
+		background: var(--bg-secondary);
+		color: var(--text-secondary);
 		overflow: hidden;
 		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
 			Arial, sans-serif;
+    border-radius: 0.8rem;
+    /* padding: 0.2rem 0.4rem; */
+    position: relative;
 	}
 
 	/* 제목 표시줄 */
@@ -191,8 +198,8 @@
 		align-items: center;
 		justify-content: space-between;
 		padding: 0 12px;
-		background: var(--bg-secondary);
-		border-bottom: 1px solid var(--border-color);
+		background: var(--bg-tertiary);
+		/* border-bottom: 1px solid var(--border-color); */
 		flex-shrink: 0;
 		font-size: 12px;
 	}
@@ -260,9 +267,10 @@
 	/* 칼럼 헤더 */
 	.column-header {
 		display: flex;
-		height: 36px;
-		background: var(--bg-secondary);
-		border-bottom: 2px solid var(--border-color);
+		height: 1.2rem;
+		/* background: var(--bg-secondary); */
+		/* border-bottom: 2px solid var(--border-color); */
+    margin-bottom: 0.2rem;
 		flex-shrink: 0;
 		user-select: none;
 	}
@@ -301,6 +309,7 @@
 		border: none;
 		background: transparent;
 		padding: 0;
+    transform: translateX(4px);
 	}
 
 	.resize-handle:hover {
@@ -311,8 +320,9 @@
 	.file-list {
 		flex: 1;
 		overflow-y: auto;
-		overflow-x: hidden;
-		background: var(--bg-primary);
+		overflow-x: auto;
+		background: var(--bg-secondary);
+		position: relative;
 	}
 
 	.file-list::-webkit-scrollbar {
@@ -350,7 +360,7 @@
 	.file-cell {
 		display: flex;
 		align-items: center;
-		padding: 0 12px;
+		padding: 0 12px 0 10px;
 		font-size: 13px;
 		/* border-right: 1px solid var(--border-color); */
 		overflow: hidden;
@@ -360,7 +370,7 @@
 
 	.cell-index {
 		justify-content: center;
-		background: var(--bg-primary);
+		background: transparent;
 		font-weight: 600;
 		color: var(--text-muted);
 	}
@@ -369,6 +379,20 @@
 		font-size: 12px;
 		font-family: 'Courier New', monospace;
 	}
+
+  .file-cell-container {
+    display: flex;
+    align-items: center;
+
+    /* border: 1px solid var(--border-color); */
+    border-radius: 0.7rem;
+    padding: 0.1rem ;
+
+    background: var(--bg-primary);
+    flex-shrink: 0;
+    box-shadow: 0 0 4px 0 rgba(0, 0, 0, 0.1);
+    
+  }
 
 	.cell-filename {
 		gap: 8px;
@@ -383,16 +407,20 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
+    font-size: 1.0rem;
+    font-weight: 500;
+    font-family: inherit;
 	}
 
 	.cell-badge {
 		display: inline-flex;
 		align-items: center;
 		padding: 4px 10px;
-		background: var(--bg-tertiary);
+		background: transparent;
 		border-radius: 4px;
 		font-size: 12px;
 		color: var(--text-secondary);
+    white-space: nowrap;
 	}
 
 	.cell-path {
@@ -415,7 +443,7 @@
 		display: inline-flex;
 		align-items: center;
 		padding: 0.2rem 0.4rem;
-		background: var(--bg-tertiary);
+		background: transparent;
 		border-radius: 8px;
 		font-size: 12px;
 		color: var(--text-secondary);
@@ -505,5 +533,21 @@
 		background: var(--bg-tertiary);
 		color: var(--text-secondary);
 	}
-</style>
 
+  .list-gradient-overlay {
+    position: absolute;
+    height: 20%;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to bottom, transparent, var(--bg-secondary));
+    opacity: 0.7;
+    z-index: 10;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+
+  .file-explorer:hover .list-gradient-overlay {
+    opacity: 0;
+  }
+</style>

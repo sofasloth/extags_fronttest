@@ -79,6 +79,13 @@
 	// Window manager panel
 	let showWindowManager = $state(true);
 
+	// Wave effect
+	let waveCenter = $state({ x: 0, y: 0 });
+	let waveRadius = $state(0);
+	let waveIntensity = $state(0);
+	let waveActive = $state(false);
+	let waveAnimationId: number | null = null;
+
 	function snapToGrid(value: number): number {
 		return Math.round(value / GRID_SIZE) * GRID_SIZE;
 	}
@@ -455,6 +462,12 @@
 			e.preventDefault();
 			isPanning = true;
 			panStart = { x: e.clientX, y: e.clientY };
+		} else if (e.button === 0) { // Left click - create wave
+			// Only create wave if not clicking on interactive elements
+			const target = e.target as HTMLElement;
+			if (!target.closest('.window') && !target.closest('.control-panel') && !target.closest('.window-manager')) {
+				createWave(e.clientX, e.clientY);
+			}
 		}
 	}
 
@@ -534,6 +547,61 @@
 		};
 		windows = [...windows, newWindow];
 	}
+
+	function createWave(x: number, y: number) {
+		// Convert screen coordinates to canvas coordinates
+		const canvasX = (x / zoom) - panOffset.x;
+		const canvasY = (y / zoom) - panOffset.y;
+		
+		waveCenter = { x: canvasX, y: canvasY };
+		waveRadius = 0;
+		waveIntensity = 1;
+		waveActive = true;
+		
+		// Start wave animation
+		if (waveAnimationId) {
+			cancelAnimationFrame(waveAnimationId);
+		}
+		animateWave();
+	}
+
+	function animateWave() {
+		if (!waveActive) return;
+		
+		waveRadius += 1.5; // Wave propagation speed
+		waveIntensity = Math.max(0, Math.exp(-waveRadius / 200)); // Exponential decay
+		
+		// Stop animation when wave fades out
+		if (waveIntensity <= 0.01) {
+			waveActive = false;
+			waveRadius = 0;
+			waveIntensity = 0;
+			return;
+		}
+		
+		waveAnimationId = requestAnimationFrame(animateWave);
+	}
+
+	function getWaveEffect(x: number, y: number): number {
+		if (!waveActive) return 1;
+		
+		const distance = Math.sqrt(
+			Math.pow(x - waveCenter.x, 2) + Math.pow(y - waveCenter.y, 2)
+		);
+		
+		// Calculate wave effect based on distance from center
+		const waveDistance = Math.abs(distance - waveRadius);
+		const waveWidth = 30; // Width of the wave
+		
+		if (waveDistance < waveWidth) {
+			// Create a sine-like wave effect
+			const wavePhase = (waveDistance / waveWidth) * Math.PI;
+			const waveEffect = Math.sin(wavePhase) * waveIntensity;
+			return 1 + (waveEffect * 0.4); // Max 40% size increase
+		}
+		
+		return 1;
+	}
 </script>
 
 <svelte:window 
@@ -545,8 +613,28 @@
 	onmousedown={handleMouseDownForPan}
 />
 
-<div class="viewport" style="transform: scale({zoom});">
+	<div class="viewport" style="transform: scale({zoom});">
 	<div class="canvas" style="transform: translate({panOffset.x}px, {panOffset.y}px);">
+		<!-- Dynamic Grid -->
+		{#each Array.from({length: Math.ceil((typeof globalThis.innerWidth !== 'undefined' ? globalThis.innerWidth : 1920) / 20) + 2}, (_, i) => i) as x}
+			{#each Array.from({length: Math.ceil((typeof globalThis.innerHeight !== 'undefined' ? globalThis.innerHeight : 1080) / 20) + 2}, (_, i) => i) as y}
+				{@const gridX = x * 20}
+				{@const gridY = y * 20}
+				{@const waveEffect = getWaveEffect(gridX, gridY)}
+				{@const dotSize = 1 * waveEffect}
+				{@const opacity = 0.3 + (waveEffect - 1) * 0.4}
+				<div 
+					class="grid-dot"
+					style="
+						left: {gridX}px;
+						top: {gridY}px;
+						width: {dotSize}px;
+						height: {dotSize}px;
+						opacity: {opacity};
+					"
+				></div>
+			{/each}
+		{/each}
 		{#each windows as window (window.id)}
 			<div 
 				class="window"
@@ -750,6 +838,13 @@
 		overflow: hidden;
 	}
 
+	:root {
+		--grid-size: 20px;
+		--grid-dot-size: 1px;
+		--grid-dot-color: var(--text-muted);
+		--text-hue: 0;
+	}
+
 	.viewport {
 		width: 100vw;
 		height: 100vh;
@@ -765,9 +860,27 @@
 		height: 100%;
 		position: relative;
 		will-change: transform;
-		background-image: radial-gradient(circle, var(--text-muted) 1px, transparent 1px);
-		background-size: 20px 20px;
-		background-position: 0 0;
+	}
+
+	.grid-dot {
+		position: absolute;
+		background: var(--text-muted);
+		border-radius: 50%;
+		transform: translate(-50%, -50%);
+		pointer-events: none;
+		animation: dotPulse 3s ease-in-out infinite;
+		animation-delay: calc(var(--delay-x, 0s) + var(--delay-y, 0s));
+	}
+
+	@keyframes dotPulse {
+		0%, 100% {
+			transform: translate(-50%, -50%) scale(0.9);
+			opacity: 0.2;
+		}
+		50% {
+			transform: translate(-50%, -50%) scale(1.1);
+			opacity: 0.5;
+		}
 	}
 
 	.window {
@@ -781,7 +894,7 @@
 		flex-direction: column;
 		will-change: transform;
 		border: 2px solid var(--border-color);
-		transition: all 0.2s ease;
+		transition: background 0.2s ease;
 	}
 
 	.title-bar {
@@ -963,7 +1076,7 @@
 	/* Resize Handles */
 	.resize-handle {
 		position: absolute;
-		z-index: 10;
+		z-index: 50;
 	}
 
 	.resize-n, .resize-s {

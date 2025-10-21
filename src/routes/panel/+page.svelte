@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import {slide} from 'svelte/transition';
 
 	type Memo = {
 		id: number;
@@ -226,7 +227,7 @@
 	<div class="file-header" bind:this={sectionRefs.header}>
 		<div class="file-title">
 			<button class="fold-btn" onclick={() => toggleSection('header')} title="접기/펼치기">
-				{foldedSections.header ? '▶' : '▼'}
+				{foldedSections.header ? '▸' : '▾'}
 			</button>
 			<span class="file-icon">❌</span>
 			<span class="file-name">{fileName}</span>
@@ -245,12 +246,12 @@
 				onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && toggleSection('preview')}
 			>
 				<button class="fold-btn-inline" title="접기/펼치기">
-					{foldedSections.preview ? '▶' : '▼'}
+					{foldedSections.preview ? '▸' : '▾'}
 				</button>
 				Preview
 			</div>
 			{#if !foldedSections.preview}
-				<div class="preview-box">
+				<div class="preview-box" in:slide={{duration: 200}} out:slide={{duration: 200}}>
 					<div class="preview-text">Preview / Summary</div>
 				</div>
 			{/if}
@@ -266,31 +267,31 @@
 				onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && toggleSection('fileInfo')}
 			>
 				<button class="fold-btn-inline" title="접기/펼치기">
-					{foldedSections.fileInfo ? '▶' : '▼'}
+					{foldedSections.fileInfo ? '▸' : '▾'}
 				</button>
 				파일 기본 정보
 			</div>
 			{#if !foldedSections.fileInfo}
-				<div class="file-info">
-				<div class="info-row">
-					<span class="info-icon">📁</span>
-					<span class="info-text">{filePath}</span>
-				</div>
-				<div class="info-row">
-					<span class="info-label">• created :</span>
-					<span class="info-value">{created}</span>
-					<span class="info-label">• 최근 유입 횟수 : 3회</span>
-				</div>
-				<div class="info-row">
-					<span class="info-label">• modified :</span>
-					<span class="info-value">{modified}</span>
-					<div class="file-type-tags">
-						{#each fileTypeTags as tag}
-							<span class="file-type-tag">{tag}</span>
-						{/each}
+				<div class="file-info" in:slide={{duration: 200}} out:slide={{duration: 200}}>
+					<div class="info-row">
+						<span class="info-icon">📁</span>
+						<span class="info-text">{filePath}</span>
+					</div>
+					<div class="info-row">
+						<span class="info-label">• created :</span>
+						<span class="info-value">{created}</span>
+						<span class="info-label">• 최근 유입 횟수 : 3회</span>
+					</div>
+					<div class="info-row">
+						<span class="info-label">• modified :</span>
+						<span class="info-value">{modified}</span>
+						<div class="file-type-tags">
+							{#each fileTypeTags as tag}
+								<span class="file-type-tag">{tag}</span>
+							{/each}
+						</div>
 					</div>
 				</div>
-			</div>
 			{/if}
 		</section>
 
@@ -304,17 +305,17 @@
 				onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && toggleSection('tags')}
 			>
 				<button class="fold-btn-inline" title="접기/펼치기">
-					{foldedSections.tags ? '▶' : '▼'}
+					{foldedSections.tags ? '▸' : '▾'}
 				</button>
 				<span class="section-icon">❄️</span>
 				<span class="section-count">4 Tags</span>
 				<div class="section-nav">
-					<button class="nav-btn">◀</button>
-					<button class="nav-btn">▶</button>
+					<button class="nav-btn" onclick={(e)=>{e.stopPropagation();}}>◂</button>
+					<button class="nav-btn" onclick={(e)=>{e.stopPropagation();}}>▸</button>
 				</div>
 			</div>
 			{#if !foldedSections.tags}
-				<div class="tags-container">
+				<div class="tags-container" in:slide={{duration: 200}} out:slide={{duration: 200}}>
 				{#each tags as tag}
 					<div class="tag-item">
 						<span class="tag-icon">{tag.icon}</span>
@@ -336,19 +337,19 @@
 				onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && toggleSection('memo')}
 			>
 				<button class="fold-btn-inline" title="접기/펼치기">
-					{foldedSections.memo ? '▶' : '▼'}
+					{foldedSections.memo ? '▸' : '▾'}
 				</button>
 				<span>MEMO</span>
-				<button class="add-btn" onclick={addMemo}>+</button>
-				<button class="expand-btn">≡</button>
+				<button class="add-btn" onclick={(e)=>{e.stopPropagation(); addMemo()}}>+</button>
+				<button class="expand-btn" onclick={(e)=>{e.stopPropagation();}}>≡</button>
 				<span class="section-count">2 Memo</span>
 				<div class="section-nav">
-					<button class="nav-btn">◀</button>
-					<button class="nav-btn">▶</button>
+					<button class="nav-btn" onclick={(e)=>{e.stopPropagation();}}>◂</button>
+					<button class="nav-btn" onclick={(e)=>{e.stopPropagation();}}>▸</button>
 				</div>
 			</div>
 			{#if !foldedSections.memo}
-				<div class="memos-container">
+				<div class="memos-container" in:slide={{duration: 200}} out:slide={{duration: 200}}>
 				{#each memos as memo}
 					<div class="memo-card">
 						<div class="memo-header">
@@ -411,18 +412,18 @@
 				onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && toggleSection('linked')}
 			>
 				<button class="fold-btn-inline" title="접기/펼치기">
-					{foldedSections.linked ? '▶' : '▼'}
+					{foldedSections.linked ? '▸' : '▾'}
 				</button>
 				<span>Linked</span>
-				<button class="expand-btn">≡</button>
+				<button class="expand-btn" onclick={(e)=>{e.stopPropagation();}}>≡</button>
 				<span class="section-count">3 Links</span>
 				<div class="section-nav">
-					<button class="nav-btn">◀</button>
-					<button class="nav-btn">▶</button>
+					<button class="nav-btn" onclick={(e)=>{e.stopPropagation();}}>◂</button>
+					<button class="nav-btn" onclick={(e)=>{e.stopPropagation();}}>▸</button>
 				</div>
 			</div>
 			{#if !foldedSections.linked}
-				<div class="linked-container">
+				<div class="linked-container" in:slide={{duration: 200}} out:slide={{duration: 200}}>
 				{#each linkedFiles as file}
 					<div class="linked-item">
 						<div class="linked-icon">❌</div>
@@ -708,7 +709,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		font-size: 10px;
+		font-size: 1.2rem;
 		transition: all 0.2s ease;
 	}
 

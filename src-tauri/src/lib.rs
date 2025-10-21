@@ -1,9 +1,11 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 use std::env;
 use std::path::Path;
-use tauri::{Manager, Position, PhysicalPosition, Emitter};
+use std::time::Duration;
+use tauri::{Manager, Position, PhysicalPosition, Emitter, AppHandle};
 use tauri::tray::{TrayIconBuilder, TrayIconEvent, MouseButton, MouseButtonState};
 use tauri::menu::{Menu, MenuItem};
+use tokio::time::sleep;
 
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -21,9 +23,17 @@ async fn show_alert_window(app: tauri::AppHandle, message: String) -> Result<(),
     // 알람창이 이미 열려있는지 확인
     if let Some(alert_window) = app.get_webview_window("alert") {
         // 이미 열려있다면 메시지만 업데이트하고 표시
+        let size = tauri::LogicalSize::new(380.0, 220.0); // 실제 컨텐츠 크기
+        alert_window.set_size(size).map_err(|e| e.to_string())?;
         alert_window.emit("show-alert", message).map_err(|e| e.to_string())?;
         alert_window.show().map_err(|e| e.to_string())?;
         alert_window.set_focus().map_err(|e| e.to_string())?;
+
+        #[cfg(target_os = "windows")]
+        {
+            alert_window.set_ignore_cursor_events(true)
+                .map_err(|e| e.to_string())?;
+        }
     } else {
         // 알람창이 없다면 새로 생성
         let alert_window = tauri::WebviewWindowBuilder::new(
@@ -32,9 +42,10 @@ async fn show_alert_window(app: tauri::AppHandle, message: String) -> Result<(),
             tauri::WebviewUrl::App("alert".into())
         )
         .title("알림")
-        .inner_size(350.0, 200.0)
+        .inner_size(480.0, 300.0)
         .resizable(false)
         .decorations(false)
+        .transparent(true)
         .always_on_top(true)
         .skip_taskbar(true)
         .visible(false)
@@ -42,7 +53,7 @@ async fn show_alert_window(app: tauri::AppHandle, message: String) -> Result<(),
         .map_err(|e| e.to_string())?;
 
         // 창을 우측 상단으로 위치 조정
-        position_alert_window(&alert_window).await?;
+        position_alert_window_internal(&alert_window).await?;
         
         // 메시지 전송 후 표시
         alert_window.emit("show-alert", message).map_err(|e| e.to_string())?;
@@ -52,7 +63,31 @@ async fn show_alert_window(app: tauri::AppHandle, message: String) -> Result<(),
     Ok(())
 }
 
-async fn position_alert_window(window: &tauri::WebviewWindow) -> Result<(), String> {
+#[tauri::command]
+fn enable_alert_interaction(app: AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("alert") {
+        #[cfg(target_os = "windows")]
+        {
+            window.set_ignore_cursor_events(false)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn disable_alert_interaction(app: AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("alert") {
+        #[cfg(target_os = "windows")]
+        {
+            window.set_ignore_cursor_events(true)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    Ok(())
+}
+
+async fn position_alert_window_internal(window: &tauri::WebviewWindow) -> Result<(), String> {
     // 화면 크기 가져오기
     let monitor = window.primary_monitor().map_err(|e| e.to_string())?;
     let (width, _height) = if let Some(m) = monitor {
@@ -63,7 +98,7 @@ async fn position_alert_window(window: &tauri::WebviewWindow) -> Result<(), Stri
     };
     
     // 우측 상단 위치 계산
-    let x = width - 350 - 20; // 창 너비 + 여백
+    let x = width - 480 - 20; // 창 너비 + 여백
     let y = 20; // 상단 여백
     
     window.set_position(Position::Physical(PhysicalPosition::new(x as i32, y as i32)))
@@ -85,6 +120,27 @@ async fn alert_closed(app: tauri::AppHandle) -> Result<(), String> {
     // 알람창이 닫혔을 때 메인 창에 알림
     if let Some(main_window) = app.get_webview_window("main") {
         main_window.emit("alert-closed", ()).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn auto_close_alert_window(app: tauri::AppHandle, delay_seconds: u64) -> Result<(), String> {
+    // 지정된 시간 후 자동으로 alert 창 닫기
+    let app_handle = app.clone();
+    tokio::spawn(async move {
+        sleep(Duration::from_secs(delay_seconds)).await;
+        if let Some(alert_window) = app_handle.get_webview_window("alert") {
+            let _ = alert_window.close();
+        }
+    });
+    Ok(())
+}
+
+#[tauri::command]
+async fn position_alert_window(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(alert_window) = app.get_webview_window("alert") {
+        position_alert_window_internal(&alert_window).await?;
     }
     Ok(())
 }
@@ -186,7 +242,11 @@ pub fn run() {
             is_directory, 
             show_alert_window, 
             close_alert_window, 
-            alert_closed
+            alert_closed,
+            auto_close_alert_window,
+            position_alert_window,
+            enable_alert_interaction,
+            disable_alert_interaction
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
