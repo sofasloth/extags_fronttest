@@ -6,6 +6,7 @@ use tauri::{Manager, Position, PhysicalPosition, Emitter, AppHandle};
 use tauri::tray::{TrayIconBuilder, TrayIconEvent, MouseButton, MouseButtonState};
 use tauri::menu::{Menu, MenuItem};
 use tokio::time::sleep;
+use serde_json;
 
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -145,6 +146,46 @@ async fn position_alert_window(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+use serde::{Serialize, Deserialize};
+use std::collections::HashMap;
+
+#[derive(Debug, Serialize, Deserialize)]
+struct Keyword {
+    id: u64,
+    #[serde(rename = "group_id")]
+    group_id: u64,
+    #[serde(rename = "type")]
+    type_: String,
+    content: String,
+    editable: bool,
+}
+
+#[tauri::command]
+async fn search_advanced(search_id: String, keywords: HashMap<String, Vec<Keyword>>) {
+    println!("search_id : {:?}", search_id);
+    
+    // 모든 키워드를 하나의 벡터로 평탄화
+    let all_keywords: Vec<&Keyword> = keywords.values().flatten().collect();
+    
+    println!("Total keywords count: {}", all_keywords.len());
+    
+    // 그룹별로 출력
+    for (group_id, keyword_list) in &keywords {
+        println!("Group {} has {} keywords:", group_id, keyword_list.len());
+        for keyword in keyword_list {
+            println!("  - id: {}, type: {}, content: {}", keyword.id, keyword.type_, keyword.content);
+        }
+    }
+    
+    // 또는 모든 키워드를 하나의 Vec로 추출
+    let flattened_keywords: Vec<Keyword> = keywords
+        .into_values()
+        .flatten()
+        .collect();
+    
+    println!("Flattened keywords: {:?}", flattened_keywords);
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let platform = tauri_plugin_os::platform();
@@ -246,7 +287,8 @@ pub fn run() {
             auto_close_alert_window,
             position_alert_window,
             enable_alert_interaction,
-            disable_alert_interaction
+            disable_alert_interaction,
+            search_advanced
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

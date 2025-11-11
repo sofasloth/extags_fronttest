@@ -112,6 +112,7 @@
 		<a href="/file_interaction" class="nav-link">File Interaction</a>
 		<a href="/search_result" class="nav-link">Search Result</a>
 		<a href="/search_window" class="nav-link">Search Window</a>
+		<a href="/new_searchbar">Search Bar</a>
 	</div>
 	<div class="flex-spacer" data-tauri-drag-region></div>
 	<button class="theme-toggle" onclick={toggleTheme} title="Toggle theme">

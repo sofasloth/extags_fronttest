@@ -23,14 +23,16 @@
 	);
 
 	// 칼럼 너비 상태
-	let columnWidths = $state({
+	let columnWidths = $state({ // 나중에 localStorage에 저장할 것.
 		index: 24,
 		fileName: 250,
 		modified: 150,
 		path: 350,
-		size: 120,
+		size: 52,
 		tag: 250
 	});
+
+	let showFilelist = $state(true);
 
 	// 리사이징 상태
 	let resizingColumn: string | null = null;
@@ -98,6 +100,7 @@
 				<button class="tag-close">✕</button>
 			</span>
 		</div>
+		<div class="flex_blank"></div>
 		<div class="title-stats">
 			<span>{totalFiles} files</span>
 			<span>·</span>
@@ -105,8 +108,19 @@
 			<span>·</span>
 			<span>{usagePercentage}%</span>
 		</div>
+		<div class="result_action">
+			<button onclick={()=>{showFilelist=!showFilelist}}>
+				{#if showFilelist}
+				-
+				{:else}
+				ㅁ
+				{/if}
+			</button>
+			<button>x</button>
+		</div>
 	</div>
 
+	{#if showFilelist}
 	<!-- 칼럼 헤더 -->
 	<div class="column-header">
 		<div class="column column-index" style="width: {columnWidths.index}px;">
@@ -139,7 +153,9 @@
 		{#each files as file (file.id)}
 			<div class="file-row">
 				<div class="file-cell cell-index" style="width: {columnWidths.index}px;">
-					<span class="index-number">{file.id}</span>
+					{#if file.id % 5 === 0 || file.id === 1 || file.id === files.length}
+						<span class="index-number">{file.id}</span>
+					{/if}
 				</div>
         <div class="file-cell-container">
           <div class="file-cell cell-filename" style="width: {columnWidths.fileName}px;">
@@ -150,6 +166,7 @@
             <span class="cell-badge">{file.modified}</span>
           </div>
           <div class="file-cell cell-path" style="width: {columnWidths.path}px;">
+						<span class="parent_directory">C://</span>
             <span class="path-text" title={file.path}>{file.path}</span>
           </div>
           <div class="file-cell" style="width: {columnWidths.size}px;">
@@ -171,11 +188,17 @@
   <div class="list-gradient-overlay"></div>
 	<!-- 스크롤바 인디케이터 (커스텀 스타일링을 위해) -->
 	<div class="scrollbar-indicator"></div>
+	{/if}
 </div>
 
 <style>
+	* {
+		user-select: none;
+	}
+
 	.file-explorer {
 		width: fit-content;
+		max-width: calc(100% - 20px);
 		/* height: 100%; */
     max-height: 90vh;
     overflow-y: auto;
@@ -189,6 +212,9 @@
     border-radius: 0.8rem;
     /* padding: 0.2rem 0.4rem; */
     position: relative;
+		margin : 40px 10px 0 10px;
+
+		box-shadow: 0 0 4px 0 rgba(0, 0, 0, 0.1);
 	}
 
 	/* 제목 표시줄 */
@@ -256,6 +282,14 @@
 		font-size: 12px;
 	}
 
+	.flex_blank {
+		flex: 1;
+	}
+
+	.result_action {
+		margin: 0 0 0 8px;
+	}
+
 	.title-stats {
 		display: flex;
 		align-items: center;
@@ -289,12 +323,17 @@
 
 	.column-index {
 		justify-content: center;
-		background: var(--bg-tertiary);
+		/* background: var(--bg-tertiary); */
 		font-weight: 700;
 	}
 
 	.column-resizable {
 		position: relative;
+		transition: background-color 0.2s ease;
+	}
+
+	.column-resizable:hover{
+		background-color: var(--bg-tertiary);
 	}
 
 	.resize-handle {
@@ -350,7 +389,7 @@
 		/* border-bottom: 1px solid var(--border-color); */
 		padding: 0.2rem 0;
 		transition: background-color 0.1s ease;
-		cursor: pointer;
+		/* cursor: pointer; */
 	}
 
 	.file-row:hover {
@@ -360,7 +399,7 @@
 	.file-cell {
 		display: flex;
 		align-items: center;
-		padding: 0 12px 0 10px;
+		padding: 0 18px 0 6px;
 		font-size: 13px;
 		/* border-right: 1px solid var(--border-color); */
 		overflow: hidden;
@@ -373,6 +412,7 @@
 		background: transparent;
 		font-weight: 600;
 		color: var(--text-muted);
+		font-family: inherit;
 	}
 
 	.index-number {
@@ -391,8 +431,16 @@
     background: var(--bg-primary);
     flex-shrink: 0;
     box-shadow: 0 0 4px 0 rgba(0, 0, 0, 0.1);
-    
+		transition: background-color 0.2s ease;
   }
+
+	.file-cell-container:hover {
+		background: var(--bg-secondary);
+	}
+
+	.file-cell-container:active {
+		background: var(--bg-tertiary);
+	}
 
 	.cell-filename {
 		gap: 8px;
@@ -423,9 +471,18 @@
     white-space: nowrap;
 	}
 
+	.parent_directory {
+		color: var(--text-secondary);
+		background-color: #6E7C82;
+		margin: 0 4px 0 0;
+		padding: 0 0.75rem;
+		
+		border-radius: 6px;
+	}
+
 	.cell-path {
 		color: var(--text-secondary);
-		direction: rtl;
+		/* direction: rtl; */
 		text-align: left;
 	}
 
@@ -449,7 +506,12 @@
 		color: var(--text-secondary);
 		font-family: inherit;
 		white-space: nowrap;
+		background-color: #6E827C;
 	}
+
+	/* .size-badge:hover{
+
+	} */
 
 	.cell-tags {
 		gap: 6px;
@@ -474,13 +536,17 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 4px;
-		padding: 4px 8px;
+		padding: 0.1rem 0.2rem;
 		background: var(--bg-tertiary);
 		border: 1px solid var(--border-color);
-		border-radius: 12px;
+		border-radius: 6px;
 		font-size: 11px;
 		white-space: nowrap;
 		flex-shrink: 0;
+	}
+
+	.item-tag {
+
 	}
 
 	.tag-icon {
